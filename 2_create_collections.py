@@ -29,26 +29,68 @@ def create_collection(name, attributes):
         )
         print(f"Collection created: {collection['name']}")
         
-        for attr in attributes:
-            # Check if attribute already exists
-            existing_attributes = databases.list_attributes(DATABASE_ID, collection['$id'])
-            if any(existing_attr['key'] == attr['key'] for existing_attr in existing_attributes['attributes']):
-                print(f"Attribute '{attr['key']}' already exists. Skipping creation.")
-                continue
-
-            databases.create_string_attribute(
-                database_id=DATABASE_ID,
-                collection_id=collection['$id'],
-                key=attr['key'],
-                size=attr['size'],
-                required=attr['required']
-            )
-            print(f"Attribute created: {attr['key']}")
-        
         return collection['$id']
     except Exception as e:
         print(f"Error creating collection {name}: {str(e)}")
         return None
+
+def create_attribute(databases, DATABASE_ID, collection_id, attr):
+    try:
+        # Check if attribute already exists
+        existing_attributes = databases.list_attributes(DATABASE_ID, collection_id)
+        if any(existing_attr['key'] == attr['key'] for existing_attr in existing_attributes['attributes']):
+            print(f"Attribute '{attr['key']}' already exists. Skipping creation.")
+            return
+
+        if attr['type'] == 'string':
+            databases.create_string_attribute(
+                database_id=DATABASE_ID,
+                collection_id=collection_id,
+                key=attr['key'],
+                size=attr['size'],
+                required=attr['required']
+            )
+        elif attr['type'] == 'integer':
+            databases.create_integer_attribute(
+                database_id=DATABASE_ID,
+                collection_id=collection_id,
+                key=attr['key'],
+                required=attr['required']
+            )
+        elif attr['type'] == 'float':
+            databases.create_float_attribute(
+                database_id=DATABASE_ID,
+                collection_id=collection_id,
+                key=attr['key'],
+                required=attr['required']
+            )
+        elif attr['type'] == 'boolean':
+            databases.create_boolean_attribute(
+                database_id=DATABASE_ID,
+                collection_id=collection_id,
+                key=attr['key'],
+                required=attr['required']
+            )
+        elif attr['type'] == 'datetime':
+            databases.create_datetime_attribute(
+                database_id=DATABASE_ID,
+                collection_id=collection_id,
+                key=attr['key'],
+                required=attr['required']
+            )
+        print(f"Attribute created: {attr['key']} (Type: {attr['type']})")
+    except Exception as e:
+        print(f"Error creating attribute {attr['key']}: {str(e)}")
+
+def delete_all_collections():
+    try:
+        existing_collections = databases.list_collections(DATABASE_ID)
+        for collection in existing_collections['collections']:
+            print(f"Deleting collection: {collection['name']} (ID: {collection['$id']})")
+            databases.delete_collection(DATABASE_ID, collection['$id'])
+        print("All collections deleted.")
+    except Exception as e:
+        print(f"Error during collection deletion: {str(e)}")
 
 def cleanup_duplicate_collections():
     try:
@@ -84,50 +126,50 @@ collections = [
     {
         "name": "DailyEntry",
         "attributes": [
-            {"key": "date", "size": 10, "required": True},
-            {"key": "protein_total", "size": 10, "required": True},
-            {"key": "notes", "size": 1000, "required": False},
-            {"key": "contextual_summary", "size": 2000, "required": False}
+            {"key": "date", "type": "datetime", "required": True},
+            {"key": "protein_total", "type": "float", "required": True},
+            {"key": "notes", "type": "string", "size": 1000, "required": False},
+            {"key": "contextual_summary", "type": "string", "size": 2000, "required": False}
         ]
     },
     {
         "name": "FoodItem",
         "attributes": [
-            {"key": "name", "size": 100, "required": True},
-            {"key": "portion_size", "size": 50, "required": True},
-            {"key": "protein", "size": 10, "required": True},
-            {"key": "meal_type", "size": 20, "required": True},
-            {"key": "estimated_calories", "size": 10, "required": False}
+            {"key": "name", "type": "string", "size": 100, "required": True},
+            {"key": "portion_size", "type": "string", "size": 50, "required": True},
+            {"key": "protein", "type": "float", "required": True},
+            {"key": "meal_type", "type": "string", "size": 20, "required": True},
+            {"key": "estimated_calories", "type": "float", "required": False}
         ]
     },
     {
         "name": "ExerciseItem",
         "attributes": [
-            {"key": "type", "size": 50, "required": True},
-            {"key": "duration", "size": 10, "required": True},
-            {"key": "intensity", "size": 20, "required": False},
-            {"key": "calories_burned", "size": 10, "required": False}
+            {"key": "type", "type": "string", "size": 50, "required": True},
+            {"key": "duration", "type": "integer", "required": True},
+            {"key": "intensity", "type": "string", "size": 20, "required": False},
+            {"key": "calories_burned", "type": "float", "required": False}
         ]
     },
     {
         "name": "CaffeineIntake",
         "attributes": [
-            {"key": "total_caffeine", "size": 10, "required": True}
+            {"key": "total_caffeine", "type": "float", "required": True}
         ]
     },
     {
         "name": "CaffeineSource",
         "attributes": [
-            {"key": "name", "size": 50, "required": True},
-            {"key": "amount", "size": 20, "required": True},
-            {"key": "caffeine_content", "size": 10, "required": True}
+            {"key": "name", "type": "string", "size": 50, "required": True},
+            {"key": "amount", "type": "string", "size": 20, "required": True},
+            {"key": "caffeine_content", "type": "float", "required": True}
         ]
     },
     {
         "name": "SweetsIntake",
         "attributes": [
-            {"key": "consumed", "size": 5, "required": True},
-            {"key": "details", "size": 500, "required": False}
+            {"key": "consumed", "type": "boolean", "required": True},
+            {"key": "details", "type": "string", "size": 500, "required": False}
         ]
     }
 ]
@@ -135,13 +177,15 @@ collections = [
 # Main execution
 if __name__ == "__main__":
     print_env_vars()
-    cleanup_duplicate_collections()
+    delete_all_collections()
     print(f"Total collections to create: {len(collections)}")
     for index, collection in enumerate(collections, start=1):
         print(f"\nAttempting to create collection {index}/{len(collections)}: {collection['name']}")
         collection_id = create_collection(collection['name'], collection['attributes'])
         if collection_id:
             print(f"{collection['name']} ID: {collection_id}")
+            for attr in collection['attributes']:
+                create_attribute(databases, DATABASE_ID, collection_id, attr)
         else:
             print(f"Failed to create {collection['name']}")
         print("---")
