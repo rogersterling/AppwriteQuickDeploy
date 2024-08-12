@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 from appwrite.client import Client
 from appwrite.services.databases import Databases
@@ -65,31 +66,32 @@ def validate_relationship(parent_collection, child_collection, relationship_key)
         except Exception as e:
             logging.error(f"Error validating relationship: {str(e)}")
 
+def load_data_model():
+    with open('_dataModel.json', 'r') as f:
+        return json.load(f)
+
 def run_validation():
+    data_model = load_data_model()
+    
     # Validate collections
-    collections = ['DailyEntry', 'FoodItem', 'ExerciseItem', 'CaffeineIntake', 'CaffeineSource', 'SweetsIntake']
+    collections = [collection['name'] for collection in data_model['collections']]
     for collection in collections:
         validate_collection_existence(collection)
     
-    # Validate attributes (example for DailyEntry)
-    daily_entry_id = validate_collection_existence('DailyEntry')
-    if daily_entry_id:
-        expected_attributes = {
-            'date': 'datetime',
-            'protein_total': 'double',
-            'notes': 'string',
-            'contextual_summary': 'string'
-        }
-        validate_collection_attributes(daily_entry_id, expected_attributes)
+    # Validate attributes
+    for collection in data_model['collections']:
+        collection_id = validate_collection_existence(collection['name'])
+        if collection_id:
+            expected_attributes = {attr['key']: attr['type'] for attr in collection['attributes']}
+            validate_collection_attributes(collection_id, expected_attributes)
     
     # Validate relationships
-    relationships = [
-        ('DailyEntry', 'FoodItem', 'foods'),
-        ('DailyEntry', 'ExerciseItem', 'exercise'),
-        ('DailyEntry', 'CaffeineIntake', 'caffeine_intake'),
-        ('DailyEntry', 'SweetsIntake', 'sweets_consumed'),
-        ('CaffeineIntake', 'CaffeineSource', 'sources')
-    ]
+    relationships = []
+    for collection in data_model['collections']:
+        for attr in collection['attributes']:
+            if attr.get('type') == 'relationship':
+                relationships.append((collection['name'], attr['related_collection'], attr['key']))
+    
     for parent, child, key in relationships:
         validate_relationship(parent, child, key)
 
