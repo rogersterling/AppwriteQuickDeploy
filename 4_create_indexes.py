@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 from appwrite.client import Client
 from appwrite.services.databases import Databases
@@ -43,21 +44,22 @@ def create_index(collection_id, key, type, attributes):
     except Exception as e:
         print(f"Error creating index '{key}' for collection '{collection_id}': {str(e)}")
 
-# Define indexes for each collection
-indexes = [
-    {"collection": "DailyEntry", "key": "idx_date", "type": "key", "attributes": ["date"]},
-    {"collection": "FoodItem", "key": "idx_name", "type": "fulltext", "attributes": ["name"]},
-    {"collection": "ExerciseItem", "key": "idx_type", "type": "key", "attributes": ["type"]},
-    {"collection": "CaffeineIntake", "key": "idx_total_caffeine", "type": "key", "attributes": ["total_caffeine"]},
-    {"collection": "SweetsIntake", "key": "idx_consumed", "type": "key", "attributes": ["consumed"]}
-]
+def load_data_model():
+    with open('_dataModel.json', 'r') as f:
+        return json.load(f)
 
-# Create indexes
-for index in indexes:
-    collection_id = get_collection_id(index["collection"])
-    if collection_id:
-        create_index(collection_id, index["key"], index["type"], index["attributes"])
-    else:
-        print(f"Skipping index creation for {index['key']} due to missing collection")
+def create_indexes():
+    data_model = load_data_model()
+    
+    for collection in data_model['collections']:
+        collection_id = get_collection_id(collection['name'])
+        if not collection_id:
+            print(f"Skipping index creation for {collection['name']} due to missing collection")
+            continue
+        
+        for index in collection.get('indexes', []):
+            create_index(collection_id, index['key'], index['type'], index['attributes'])
 
-print("Index creation process completed.")
+if __name__ == "__main__":
+    create_indexes()
+    print("Index creation process completed.")

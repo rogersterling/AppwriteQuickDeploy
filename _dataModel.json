@@ -11,6 +11,17 @@
         {"key": "modelChoice", "type": "string", "size": 100, "required": true},
         {"key": "isDefaultCategory", "type": "boolean", "required": true},
         {"key": "userStylePrompt", "type": "string", "size": 65535, "required": false}
+      ],
+      "indexes": [
+        {"key": "idx_categoryName", "type": "key", "attributes": ["categoryName"]},
+        {"key": "idx_isDefaultCategory", "type": "key", "attributes": ["isDefaultCategory"]}
+      ],
+      "permissions": [
+        "read(\"any\")",
+        "write(\"users\")",
+        "create(\"users\")",
+        "update(\"users\")",
+        "delete(\"users\")"
       ]
     },
     {
@@ -22,6 +33,18 @@
         {"key": "briefSummary", "type": "string", "size": 65535, "required": true},
         {"key": "dateOfUpload", "type": "datetime", "required": true},
         {"key": "tags", "type": "string", "size": 255, "required": false, "array": true}
+      ],
+      "indexes": [
+        {"key": "idx_dateOfUpload", "type": "key", "attributes": ["dateOfUpload"]},
+        {"key": "idx_title", "type": "fulltext", "attributes": ["title"]},
+        {"key": "idx_tags", "type": "key", "attributes": ["tags"]}
+      ],
+      "permissions": [
+        "read(\"users\")",
+        "write(\"users\")",
+        "create(\"users\")",
+        "update(\"users\")",
+        "delete(\"users\")"
       ]
     },
     {
@@ -32,6 +55,14 @@
         {"key": "AssemblyAI", "type": "string", "size": 65535, "required": false},
         {"key": "Anthropic", "type": "string", "size": 65535, "required": false},
         {"key": "OpenAI", "type": "string", "size": 65535, "required": false}
+      ],
+      "indexes": [],
+      "permissions": [
+        "read(\"users\")",
+        "write(\"users\")",
+        "create(\"users\")",
+        "update(\"users\")",
+        "delete(\"users\")"
       ]
     }
   ]

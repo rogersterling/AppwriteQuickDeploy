@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 from appwrite.client import Client
 from appwrite.services.databases import Databases
@@ -16,7 +17,7 @@ client.set_key(os.getenv('APPWRITE_API_KEY'))
 # Initialize the database service
 databases = Databases(client)
 
-# Your database ID from environment variable
+# Use the database ID from environment variables
 DATABASE_ID = os.getenv('APPWRITE_DATABASE_ID')
 
 def get_collection_id(collection_name):
@@ -52,18 +53,29 @@ def create_relationship(parent_collection, parent_property, child_collection, ty
     except Exception as e:
         print(f"Error creating relationship {parent_collection}.{parent_property} -> {child_collection}: {str(e)}")
 
-def setup_relationships():
-    relationships = [
-        ('DailyEntry', 'foods', 'FoodItem', 'oneToMany'),
-        ('DailyEntry', 'exercise', 'ExerciseItem', 'oneToMany'),
-        ('DailyEntry', 'caffeine_intake', 'CaffeineIntake', 'oneToOne'),
-        ('DailyEntry', 'sweets_consumed', 'SweetsIntake', 'oneToOne'),
-        ('CaffeineIntake', 'sources', 'CaffeineSource', 'oneToMany')
-    ]
+def setup_relationships(data_model):
+    relationships = []
+    for collection in data_model['collections']:
+        for attribute in collection['attributes']:
+            if attribute.get('type') == 'relationship':
+                relationships.append((
+                    collection['name'],
+                    attribute['key'],
+                    attribute['related_collection'],
+                    attribute['relationship_type']
+                ))
+
+    if not relationships:
+        print("No relationships defined in the data model. Skipping relationship creation.")
+        return
 
     for parent, prop, child, rel_type in relationships:
         create_relationship(parent, prop, child, rel_type)
 
 if __name__ == "__main__":
-    setup_relationships()
+    # Load data model from JSON file
+    with open('_dataModel.json', 'r') as f:
+        data_model = json.load(f)
+
+    setup_relationships(data_model)
     print("Relationship setup completed.")

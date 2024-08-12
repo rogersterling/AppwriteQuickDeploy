@@ -1,7 +1,10 @@
 import os
+import json
 from dotenv import load_dotenv
 from appwrite.client import Client
 from appwrite.services.databases import Databases
+from appwrite.permission import Permission
+from appwrite.role import Role
 
 # Load environment variables
 load_dotenv()
@@ -30,41 +33,48 @@ def get_collection_id(collection_name):
         print(f"Error getting collection ID for '{collection_name}': {str(e)}")
         return None
 
-def set_collection_permissions(collection_name, read_permission, write_permission):
+def set_collection_permissions(collection_name, permissions):
     collection_id = get_collection_id(collection_name)
     if not collection_id:
         print(f"Failed to set permissions for {collection_name}: Collection not found")
         return
 
     try:
+        formatted_permissions = []
+        for perm in permissions:
+            action, role = perm.split('(')
+            role = role.strip('")')
+            if role == 'any':
+                formatted_permissions.append(getattr(Permission, action)(Role.any()))
+            elif role == 'users':
+                formatted_permissions.append(getattr(Permission, action)(Role.users()))
+            else:
+                formatted_permissions.append(getattr(Permission, action)(Role.team(role)))
+
         databases.update_collection(
             database_id=DATABASE_ID,
             collection_id=collection_id,
             name=collection_name,
-            permissions={
-                "read": [read_permission],
-                "write": [write_permission],
-                "create": [write_permission],
-                "update": [write_permission],
-                "delete": [write_permission]
-            }
+            permissions=formatted_permissions
         )
         print(f"Permissions set for collection {collection_name}")
     except Exception as e:
         print(f"Error setting permissions for collection {collection_name}: {type(e).__name__}: {str(e)}")
 
-# Define permissions for each collection
-collections_permissions = [
-    {"name": "DailyEntry", "read": "any", "write": "user:{{user_id}}"},
-    {"name": "FoodItem", "read": "any", "write": "user:{{user_id}}"},
-    {"name": "ExerciseItem", "read": "any", "write": "user:{{user_id}}"},
-    {"name": "CaffeineIntake", "read": "any", "write": "user:{{user_id}}"},
-    {"name": "CaffeineSource", "read": "any", "write": "user:{{user_id}}"},
-    {"name": "SweetsIntake", "read": "any", "write": "user:{{user_id}}"}
-]
+def load_data_model():
+    with open('_dataModel.json', 'r') as f:
+        return json.load(f)
 
-# Set permissions for each collection
-for collection in collections_permissions:
-    set_collection_permissions(collection["name"], collection["read"], collection["write"])
+def set_permissions():
+    data_model = load_data_model()
+    
+    for collection in data_model['collections']:
+        if 'permissions' in collection:
+            set_collection_permissions(collection['name'], collection['permissions'])
+        else:
+            print(f"No permissions specified for collection {collection['name']}")
 
-print("Permissions setting process completed.")
+if __name__ == "__main__":
+    print("Starting permissions setting process...")
+    set_permissions()
+    print("Permissions setting process completed.")
