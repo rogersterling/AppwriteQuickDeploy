@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 from appwrite.client import Client
 from appwrite.services.databases import Databases
@@ -42,42 +43,43 @@ def create_attribute(databases, DATABASE_ID, collection_id, attr):
             print(f"Attribute '{attr['key']}' already exists. Skipping creation.")
             return
 
-        if attr['type'] == 'string':
-            databases.create_string_attribute(
-                database_id=DATABASE_ID,
-                collection_id=collection_id,
-                key=attr['key'],
-                size=attr['size'],
-                required=attr['required']
-            )
-        elif attr['type'] == 'integer':
-            databases.create_integer_attribute(
-                database_id=DATABASE_ID,
-                collection_id=collection_id,
-                key=attr['key'],
-                required=attr['required']
-            )
-        elif attr['type'] == 'float':
-            databases.create_float_attribute(
-                database_id=DATABASE_ID,
-                collection_id=collection_id,
-                key=attr['key'],
-                required=attr['required']
-            )
-        elif attr['type'] == 'boolean':
-            databases.create_boolean_attribute(
-                database_id=DATABASE_ID,
-                collection_id=collection_id,
-                key=attr['key'],
-                required=attr['required']
-            )
-        elif attr['type'] == 'datetime':
-            databases.create_datetime_attribute(
-                database_id=DATABASE_ID,
-                collection_id=collection_id,
-                key=attr['key'],
-                required=attr['required']
-            )
+        attribute_type = attr['type'].lower()
+        kwargs = {
+            "database_id": DATABASE_ID,
+            "collection_id": collection_id,
+            "key": attr['key'],
+            "required": attr.get('required', False)
+        }
+
+        if attribute_type == 'string':
+            databases.create_string_attribute(**kwargs, size=attr.get('size', 255))
+        elif attribute_type == 'integer':
+            databases.create_integer_attribute(**kwargs)
+        elif attribute_type == 'float':
+            databases.create_float_attribute(**kwargs)
+        elif attribute_type == 'boolean':
+            databases.create_boolean_attribute(**kwargs)
+        elif attribute_type == 'datetime':
+            databases.create_datetime_attribute(**kwargs)
+        elif attribute_type == 'enum':
+            databases.create_enum_attribute(**kwargs, elements=attr['elements'])
+        elif attribute_type == 'ip':
+            databases.create_ip_attribute(**kwargs)
+        elif attribute_type == 'email':
+            databases.create_email_attribute(**kwargs)
+        elif attribute_type == 'url':
+            databases.create_url_attribute(**kwargs)
+        elif attribute_type == 'relationship':
+            databases.create_relationship_attribute(**kwargs, 
+                                                    related_collection_id=attr['related_collection_id'],
+                                                    type=attr['relationship_type'])
+        else:
+            print(f"Unsupported attribute type: {attr['type']}")
+            return
+
+        if attr.get('array', False):
+            databases.update_attribute(DATABASE_ID, collection_id, attr['key'], array=True)
+
         print(f"Attribute created: {attr['key']} (Type: {attr['type']})")
     except Exception as e:
         print(f"Error creating attribute {attr['key']}: {str(e)}")
@@ -121,66 +123,17 @@ databases = Databases(client)
 # Use the database ID from environment variables
 DATABASE_ID = os.getenv('APPWRITE_DATABASE_ID')
 
-# Define collections and their attributes
-collections = [
-    {
-        "name": "DailyEntry",
-        "attributes": [
-            {"key": "date", "type": "datetime", "required": True},
-            {"key": "protein_total", "type": "float", "required": True},
-            {"key": "notes", "type": "string", "size": 1000, "required": False},
-            {"key": "contextual_summary", "type": "string", "size": 2000, "required": False}
-        ]
-    },
-    {
-        "name": "FoodItem",
-        "attributes": [
-            {"key": "name", "type": "string", "size": 100, "required": True},
-            {"key": "portion_size", "type": "string", "size": 50, "required": True},
-            {"key": "protein", "type": "float", "required": True},
-            {"key": "meal_type", "type": "string", "size": 20, "required": True},
-            {"key": "estimated_calories", "type": "float", "required": False}
-        ]
-    },
-    {
-        "name": "ExerciseItem",
-        "attributes": [
-            {"key": "type", "type": "string", "size": 50, "required": True},
-            {"key": "duration", "type": "integer", "required": True},
-            {"key": "intensity", "type": "string", "size": 20, "required": False},
-            {"key": "calories_burned", "type": "float", "required": False}
-        ]
-    },
-    {
-        "name": "CaffeineIntake",
-        "attributes": [
-            {"key": "total_caffeine", "type": "float", "required": True}
-        ]
-    },
-    {
-        "name": "CaffeineSource",
-        "attributes": [
-            {"key": "name", "type": "string", "size": 50, "required": True},
-            {"key": "amount", "type": "string", "size": 20, "required": True},
-            {"key": "caffeine_content", "type": "float", "required": True}
-        ]
-    },
-    {
-        "name": "SweetsIntake",
-        "attributes": [
-            {"key": "consumed", "type": "boolean", "required": True},
-            {"key": "details", "type": "string", "size": 500, "required": False}
-        ]
-    }
-]
+# Load data model from JSON file
+with open('_dataModel.json', 'r') as f:
+    data_model = json.load(f)
 
 # Main execution
 if __name__ == "__main__":
     print_env_vars()
     delete_all_collections()
-    print(f"Total collections to create: {len(collections)}")
-    for index, collection in enumerate(collections, start=1):
-        print(f"\nAttempting to create collection {index}/{len(collections)}: {collection['name']}")
+    print(f"Total collections to create: {len(data_model['collections'])}")
+    for index, collection in enumerate(data_model['collections'], start=1):
+        print(f"\nAttempting to create collection {index}/{len(data_model['collections'])}: {collection['name']}")
         collection_id = create_collection(collection['name'], collection['attributes'])
         if collection_id:
             print(f"{collection['name']} ID: {collection_id}")

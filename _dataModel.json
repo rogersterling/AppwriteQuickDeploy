@@ -1,0 +1,38 @@
+{
+  "collections": [
+    {
+      "name": "Categories",
+      "attributes": [
+        {"key": "categoryName", "type": "string", "size": 255, "required": true},
+        {"key": "mainPrompt", "type": "string", "size": 65535, "required": true},
+        {"key": "titlePrompt", "type": "string", "size": 65535, "required": true},
+        {"key": "briefSummaryPrompt", "type": "string", "size": 65535, "required": true},
+        {"key": "whichModelProvider", "type": "enum", "elements": ["OpenAI", "Claude"], "required": true},
+        {"key": "modelChoice", "type": "string", "size": 100, "required": true},
+        {"key": "isDefaultCategory", "type": "boolean", "required": true},
+        {"key": "userStylePrompt", "type": "string", "size": 65535, "required": false}
+      ]
+    },
+    {
+      "name": "Record",
+      "attributes": [
+        {"key": "title", "type": "string", "size": 255, "required": true},
+        {"key": "rawTranscript", "type": "string", "size": 65535, "required": true},
+        {"key": "outputBody", "type": "string", "size": 65535, "required": true},
+        {"key": "briefSummary", "type": "string", "size": 65535, "required": true},
+        {"key": "dateOfUpload", "type": "datetime", "required": true},
+        {"key": "tags", "type": "string", "size": 255, "required": false, "array": true}
+      ]
+    },
+    {
+      "name": "Settings",
+      "attributes": [
+        {"key": "defaultStylePrompt", "type": "string", "size": 65535, "required": false},
+        {"key": "tagsPrompt", "type": "string", "size": 65535, "required": false},
+        {"key": "AssemblyAI", "type": "string", "size": 65535, "required": false},
+        {"key": "Anthropic", "type": "string", "size": 65535, "required": false},
+        {"key": "OpenAI", "type": "string", "size": 65535, "required": false}
+      ]
+    }
+  ]
+}
